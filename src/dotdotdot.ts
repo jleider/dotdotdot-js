@@ -10,6 +10,38 @@
  *	http://creativecommons.org/licenses/by-nc/4.0/
  */
 
+export type dddContainer = HTMLElement & {dotdotdot?: dddFunctionObject};
+
+/** An object with function values. */
+export interface dddFunctionObject {
+    [key: string] 	: Function
+}
+
+/** Default options for the class. */
+export interface dddOptions {
+
+    /** The ellipsis to place after the truncated text. */
+    ellipsis 	?: string,
+
+    /** Function to invoke after the truncate process. */
+    callback	?: Function,
+
+    /** How to truncate: 'node', 'word' (default) or 'letter'. */
+    truncate	?: string,
+
+    /** Optional tolerance for the container height. */
+    tolerance	?: number,
+
+    /** Selector for elements not to remove from the DOM. */
+    keep 		?: string,
+
+    /** Whether and when to update the ellipsis: null, 'window' (default) or 'resize' */
+    watch 		?: string,
+
+    /** The height for the container. If null, the max-height will be read from the CSS properties. */
+    height		?: number
+}
+
 /**
  * Class for a multiline ellipsis.
  */
@@ -20,19 +52,16 @@ export default class Dotdotdot {
     /**	Default options. */
     static options: dddOptions = {
         ellipsis: '\u2026 ',
-        callback: function(isTruncated) {},
+        callback: () => {},
         truncate: 'word',
         tolerance: 0,
-        keep: null,
+        keep: undefined,
         watch: 'window',
-        height: null
+        height: undefined
     };
 
     /** Element to truncate */
-    container: HTMLElement;
-
-    /** Inner element, added for measuring. */
-    innerContainer: HTMLElement;
+    container: dddContainer;
 
     /** Options. */
     options: dddOptions;
@@ -47,10 +76,10 @@ export default class Dotdotdot {
     API: dddFunctionObject;
 
     /** Storage for the watch timeout, oddly it has a number type. */
-    watchTimeout: number;
+    watchTimeout: number | undefined;
 
     /** Storage for the watch interval, oddly it has a number type. */
-    watchInterval: number;
+    watchInterval: number | undefined;
 
     /** Storage for the original style attribute. */
     originalStyle: string;
@@ -59,7 +88,7 @@ export default class Dotdotdot {
     originalContent: Node[];
 
     /** Function to invoke on window resize. Needs to be stored so it can be removed later on. */
-    resizeEvent: EventListener;
+    resizeEvent: EventListener | undefined;
 
     /**
      * Truncate a multiline element with an ellipsis.
@@ -75,40 +104,33 @@ export default class Dotdotdot {
         this.options = options || {};
 
         //	Set the watch timeout and -interval;
-        this.watchTimeout = null;
-        this.watchInterval = null;
+        this.watchTimeout = undefined;
+        this.watchInterval = undefined;
 
         //	Set the resize event handler.
-        this.resizeEvent = null;
+        this.resizeEvent = undefined;
 
         //	Extend the specified options with the default options.
-        for (let option in Dotdotdot.options) {
-            if (!Dotdotdot.options.hasOwnProperty(option)) {
-                continue;
-            }
+        this.options = Object.assign(Dotdotdot.options, this.options);
 
-            if (typeof this.options[option] == 'undefined') {
-                this.options[option] = Dotdotdot.options[option];
-            }
-        }
-
-        //	If the element allready is a dotdotdot instance.
+        //	If the element already is a dotdotdot instance.
         //		-> Destroy the previous instance.
-        var oldAPI = this.container['dotdotdot'];
+        const oldAPI = this.container.dotdotdot;
         if (oldAPI) {
             oldAPI.destroy();
         }
 
         //	Create the API.
-        this.API = {};
-        ['truncate', 'restore', 'destroy', 'watch', 'unwatch'].forEach(fn => {
-            this.API[fn] = () => {
-                return this[fn].call(this);
-            };
-        });
+        this.API = {
+            'truncate': this.truncate,
+            'restore': this.restore,
+            'destroy': this.destroy,
+            'watch': this.watch,
+            'unwatch': this.unwatch
+        };
 
         //	Store the API.
-        this.container['dotdotdot'] = this.API;
+        this.container.dotdotdot = this.API;
 
         //	Store the original style attribute;
         this.originalStyle = this.container.getAttribute('style') || '';
@@ -117,23 +139,22 @@ export default class Dotdotdot {
         this.originalContent = this._getOriginalContent();
 
         //	Create the ellipsis Text node.
-        this.ellipsis = document.createTextNode(this.options.ellipsis);
+        this.ellipsis = this.options.ellipsis ? document.createTextNode(this.options.ellipsis) : document.createTextNode("");
 
         //	Set CSS properties for the container.
-        var computedStyle = window.getComputedStyle(this.container);
-        if (computedStyle['word-wrap'] !== 'break-word') {
-            this.container.style['word-wrap'] = 'break-word';
+        const computedStyle = window.getComputedStyle(this.container);
+        if (computedStyle.wordWrap !== 'break-word') {
+            this.container.style.wordWrap = 'break-word';
         }
-        if (computedStyle['white-space'] === 'pre') {
-            this.container.style['white-space'] = 'pre-wrap';
-        } else if (computedStyle['white-space'] === 'nowrap') {
-            this.container.style['white-space'] = 'normal';
+        if (computedStyle.whiteSpace === 'pre') {
+            this.container.style.whiteSpace = 'pre-wrap';
+        } else if (computedStyle.whiteSpace === 'nowrap') {
+            this.container.style.whiteSpace = 'normal';
         }
 
         //	Set the max-height for the container.
-        if (this.options.height === null) {
-            this.options.height = this._getMaxHeight();
-        }
+        this.options.height = (this.options.height === null) ? this._getMaxHeight() : this.options.height;
+        this.maxHeight = this._getMaxHeight();
 
         //	Truncate the text.
         this.truncate();
@@ -169,7 +190,7 @@ export default class Dotdotdot {
      */
     destroy() {
         this.restore();
-        this.container['dotdotdot'] = null;
+        this.container.dotdotdot = undefined;
     }
 
     /**
@@ -180,18 +201,18 @@ export default class Dotdotdot {
         this.unwatch();
 
         /**	The previously measure sizes. */
-        var oldSizes = {
+        let oldSizes = {
             width: null,
             height: null
         };
 
         /**
-         * Measure the sizes and start the truncate proces.
+         * Measure the sizes and start the truncate process.
          */
-        var watchSizes = (
-            element: Window | HTMLElement,
-            width: string,
-            height: string
+        const watchSizes = (
+            element: HTMLElement | Window,
+            width: 'clientWidth' | 'innerWidth',
+            height: 'clientHeight' | 'innerHeight'
         ) => {
             //	Only if the container is visible.
             if (
@@ -199,9 +220,9 @@ export default class Dotdotdot {
                 this.container.offsetHeight ||
                 this.container.getClientRects().length
             ) {
-                let newSizes = {
-                    width: element[width],
-                    height: element[height]
+                const newSizes = {
+                    width: (<any>element)[width],
+                    height: (<any>element)[height]
                 };
 
                 if (
@@ -250,7 +271,7 @@ export default class Dotdotdot {
         //	Stop the windowResize handler.
         if (this.resizeEvent) {
             window.removeEventListener('resize', this.resizeEvent);
-            this.resizeEvent = null;
+            this.resizeEvent = undefined;
         }
 
         //	Stop the watch interval.
@@ -268,7 +289,7 @@ export default class Dotdotdot {
      * Start the truncate process.
      */
     truncate() {
-        var isTruncated = false;
+        let isTruncated = false;
 
         //	Fill the container with all the original content.
         this.container.innerHTML = '';
@@ -291,7 +312,9 @@ export default class Dotdotdot {
         );
 
         //	Invoke the callback.
-        this.options.callback.call(this.container, isTruncated);
+        if(this.options.callback !== undefined) {
+            this.options.callback.call(this.container, isTruncated);
+        }
 
         return isTruncated;
     }
@@ -301,15 +324,15 @@ export default class Dotdotdot {
      *
      * @param {HTMLElement} element The element to truncate.
      */
-    _truncateToNode(element: HTMLElement) {
-        var _coms = [],
-            _elms = [];
+    _truncateToNode(element: HTMLElement | Text) {
+        const _coms: Comment[] = [],
+              _elms: (HTMLElement | Text)[] = [];
 
         //	Empty the element
         //		-> replace all contents with comments
         Dotdotdot.$.contents(element).forEach(element => {
             if (
-                element.nodeType != 1 ||
+                !Dotdotdot.isElement(element) ||
                 !(element as HTMLElement).matches('.ddd-keep')
             ) {
                 let comment = document.createComment('');
@@ -330,19 +353,18 @@ export default class Dotdotdot {
             _coms[e].replaceWith(_elms[e]);
 
             let ellipsis = this.ellipsis.cloneNode(true);
+            let el = _elms[e];
 
-            switch (_elms[e].nodeType) {
-                case 1:
-                    _elms[e].append(ellipsis);
-                    break;
-
-                case 3:
-                    _elms[e].after(ellipsis);
-                    break;
+            if(Dotdotdot.isElement(el)) {
+                el.append(ellipsis);
+            } else if(Dotdotdot.isText(el)) {
+                el.after(ellipsis);
             }
 
             let fits = this._fits();
-            ellipsis.parentElement.removeChild(ellipsis);
+            if(ellipsis.parentElement) {
+                ellipsis.parentElement.removeChild(ellipsis);
+            }
 
             if (!fits) {
                 if (this.options.truncate == 'node' && e > 1) {
@@ -365,7 +387,7 @@ export default class Dotdotdot {
 
         //	Border case
         //		-> the last node with only an ellipsis in it...
-        if (_last.nodeType == 1) {
+        if (Dotdotdot.isElement(_last)) {
             let element = document.createElement(_last.nodeName);
             element.append(this.ellipsis);
 
@@ -385,7 +407,7 @@ export default class Dotdotdot {
         }
 
         //	Proceed inside last element.
-        if (_last.nodeType == 1) {
+        if (Dotdotdot.isElement(_last)) {
             this._truncateToNode(_last);
         } else {
             this._truncateToWord(_last);
@@ -397,19 +419,19 @@ export default class Dotdotdot {
      *
      * @param {HTMLElement} element The element to truncate.
      */
-    _truncateToWord(element: HTMLElement) {
-        var text = element.textContent,
-            seporator = text.indexOf(' ') !== -1 ? ' ' : '\u3000',
-            words = text.split(seporator);
+    _truncateToWord(element: HTMLElement | Text) {
+        const text = element.textContent,
+            separator = text ? text.indexOf(' ') !== -1 ? ' ' : '\u3000' : ' ',
+            words = text ? text.split(separator) : [];
 
         for (var a = words.length; a >= 0; a--) {
             element.textContent = this._addEllipsis(
-                words.slice(0, a).join(seporator)
+                words.slice(0, a).join(separator)
             );
 
             if (this._fits()) {
                 if (this.options.truncate == 'letter') {
-                    element.textContent = words.slice(0, a + 1).join(seporator);
+                    element.textContent = words.slice(0, a + 1).join(separator);
                     this._truncateToLetter(element);
                 }
                 break;
@@ -422,11 +444,11 @@ export default class Dotdotdot {
      *
      * @param 	{HTMLElement} element The element to truncate.
      */
-    _truncateToLetter(element: HTMLElement) {
-        var letters = element.textContent.split(''),
-            text = '';
+    _truncateToLetter(element: HTMLElement | Text) {
+        const letters = element.textContent ? element.textContent.split('') : [];
+        let text = '';
 
-        for (var a = letters.length; a >= 0; a--) {
+        for (let a = letters.length; a >= 0; a--) {
             text = letters.slice(0, a).join('');
 
             if (!text.length) {
@@ -449,7 +471,7 @@ export default class Dotdotdot {
     _fits(): boolean {
         return (
             this.container.scrollHeight <=
-            this.maxHeight + this.options.tolerance
+            this.maxHeight + (this.options.tolerance || 0)
         );
     }
 
@@ -460,7 +482,7 @@ export default class Dotdotdot {
      * @return	{string}		The text with the added ellipsis.
      */
     _addEllipsis(text: string): string {
-        var remove = [' ', '\u3000', ',', ';', '.', '!', '?'];
+        const remove = [' ', '\u3000', ',', ';', '.', '!', '?'];
 
         while (remove.indexOf(text.slice(-1)) > -1) {
             text = text.slice(0, -1);
@@ -475,7 +497,7 @@ export default class Dotdotdot {
      *
      * @return {array} The sanitizes HTML elements.
      */
-    _getOriginalContent(): HTMLElement[] {
+    _getOriginalContent(): (HTMLElement | Text)[] {
         let keep = 'script, style';
         if (this.options.keep) {
             keep += ', ' + this.options.keep;
@@ -497,12 +519,12 @@ export default class Dotdotdot {
 
                     //	Remove Text nodes that do not take up space in the DOM.
                     //	This kinda asumes a default display property for the elements in the container.
-                    if (text.nodeType == 3) {
-                        if (text.textContent.trim() == '') {
+                    if (Dotdotdot.isText(text)) {
+                        if ((text.textContent || '').trim() == '') {
                             let prev = text.previousSibling as HTMLElement,
                                 next = text.nextSibling as HTMLElement;
 
-                            if (
+                            if (text.parentElement &&
                                 text.parentElement.matches(
                                     'table, thead, tbody, tfoot, tr, dl, ul, ol, video'
                                 ) ||
@@ -520,7 +542,7 @@ export default class Dotdotdot {
                         }
 
                         //	Remove Comment nodes.
-                    } else if (text.nodeType == 8) {
+                    } else if (Dotdotdot.isComment(text)) {
                         remove = true;
                     }
 
@@ -532,9 +554,9 @@ export default class Dotdotdot {
         );
 
         //	Create a clone of all contents.
-        let content = [];
+        let content: (HTMLElement | Text)[] = [];
         Dotdotdot.$.contents(this.container).forEach(element => {
-            content.push(element.cloneNode(true));
+            content.push(<HTMLElement | Text>element.cloneNode(true));
         });
 
         return content;
@@ -550,10 +572,10 @@ export default class Dotdotdot {
             return this.options.height;
         }
 
-        var style = window.getComputedStyle(this.container);
+        const style = window.getComputedStyle(this.container);
 
         //	Find smallest CSS height
-        var properties = ['maxHeight', 'height'],
+        var properties: (keyof CSSStyleDeclaration)[] = ['maxHeight', 'height'],
             height = 0;
 
         for (var a = 0; a < properties.length; a++) {
@@ -588,6 +610,18 @@ export default class Dotdotdot {
         return Math.max(height, 0);
     }
 
+    static isElement(n: Node): n is Element {
+        return n.nodeType === 1;
+    }
+
+    static isText(n: Node): n is Text {
+        return n.nodeType === 3;
+    }
+
+    static isComment(n: Node): n is Comment {
+        return n.nodeType === 8;
+    }
+
     /** DOM traversing functions to uniform datatypes. */
     static $ = {
         /**
@@ -613,9 +647,9 @@ export default class Dotdotdot {
          * @param {HTMLElement}	[element=document]	The element to search in.
          * @return {array} 							The found nodes.
          */
-        contents: (element?: HTMLElement | Document): Node[] => {
+        contents: (element?: HTMLElement | Text | Document): (Text | HTMLElement)[] => {
             element = element || document;
-            return Array.prototype.slice.call(element.childNodes);
+            return [].slice.call(element.childNodes);
         }
     };
 }
@@ -623,11 +657,11 @@ export default class Dotdotdot {
 //	The jQuery plugin.
 (function($) {
     if (typeof $ != 'undefined') {
-        $.fn.dotdotdot = function(options) {
-            return this.each((e, element) => {
+        $.fn.dotdotdot = function(options: dddOptions) {
+            return this.each((e: any, element: HTMLElement) => {
                 let dot = new Dotdotdot(element, options);
-                element['dotdotdot'] = dot.API;
+                (<dddContainer>element).dotdotdot = dot.API;
             });
         };
     }
-})(window['Zepto'] || window['jQuery']);
+})((<any>window)['Zepto'] || (<any>window)['jQuery']);

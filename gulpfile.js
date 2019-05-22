@@ -50,11 +50,12 @@ const js = cb => {
         .pipe(gulp.dest('dist'));
 };
 
-exports.default = gulp.parallel(jsUMD, gulp.series(jsESM, js), jsES6);
+const build = gulp.parallel(jsUMD, gulp.series(jsESM, js), jsES6);
 
 // Watch task 'gulp watch': Starts a watch on JS tasks
 const watch = cb => {
-    gulp.watch('src/*.ts', gulp.parallel(jsUMD, gulp.series(jsESM, js), jsES6));
+    gulp.watch('src/*.ts', build);
     cb();
 };
+exports.default = build;
 exports.watch = watch;
