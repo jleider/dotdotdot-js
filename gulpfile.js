@@ -5,27 +5,19 @@ const gulp = require('gulp'),
     replace = require('gulp-replace');
 
 const transpile = (target, module) => {
-    return (
-        gulp
-            .src('src/*.ts')
+    const tsProject = typescript.createProject('tsconfig.json', { target, module });
 
-            // First, we transpile back to JS.
-            .pipe(
-                typescript({
-                    target,
-                    module
-                })
-            )
+    // First, we transpile back to JS.
+    const tsResult = tsProject.src().pipe(tsProject());
 
-            // Next, uglify it.
-            .pipe(
-                terser({
-                    output: {
-                        comments: '/^!/'
-                    }
-                })
-            )
-    );
+    tsResult.dts.pipe(gulp.dest('dist'));
+
+    return tsResult.js.pipe(
+      terser({
+        output: {
+          comments: '/^!/'
+        }
+      }));
 };
 
 /** Save plugin to be used with UMD pattern. */
@@ -58,11 +50,12 @@ const js = cb => {
         .pipe(gulp.dest('dist'));
 };
 
-exports.default = gulp.parallel(jsUMD, gulp.series(jsESM, js), jsES6);
+const build = gulp.parallel(jsUMD, gulp.series(jsESM, js), jsES6);
 
 // Watch task 'gulp watch': Starts a watch on JS tasks
 const watch = cb => {
-    gulp.watch('src/*.ts', gulp.parallel(jsUMD, gulp.series(jsESM, js), jsES6));
+    gulp.watch('src/*.ts', build);
     cb();
 };
+exports.default = build;
 exports.watch = watch;
