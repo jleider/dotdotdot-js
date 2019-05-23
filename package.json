@@ -1,8 +1,9 @@
 {
 	"name": "dotdotdot-ts",
 	"version": "4.0.9",
-	"main": "dist/dotdotdot.js",
+	"main": "dist/dotdotdot.umd.js",
 	"module": "dist/dotdotdot.esm.js",
+	"types": "dist/dotdotdot.d.ts",
 	"author": "Fred Heusschen <info@frebsite.nl>",
 	"contributors": [
 		"Justin Leider <github@justinleider.com>"
