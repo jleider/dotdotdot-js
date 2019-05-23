@@ -1,5 +1,7 @@
-dotdotdot
+dotdotdot-ts
 ================
+
+**This is a fork of dotdotdot.js with stricter typescript settings and provides typescript typings.**
 
 Dotdotdot is a javascript plugin for truncating multiple line content on a webpage. 
 It uses an ellipsis to indicate that there is more text than currently visible. 
