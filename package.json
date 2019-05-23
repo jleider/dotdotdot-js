@@ -1,13 +1,16 @@
 {
-	"name": "dotdotdot-js",
+	"name": "dotdotdot-ts",
 	"version": "4.0.9",
 	"main": "dist/dotdotdot.js",
 	"module": "dist/dotdotdot.esm.js",
 	"author": "Fred Heusschen <info@frebsite.nl>",
+	"contributors": [
+		"Justin Leider <github@justinleider.com>"
+	],
 	"license": "CC-BY-NC-4.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/FrDH/dotdotdot-js.git"
+		"url": "https://github.com/jleider/dotdotdot-ts.git"
 	},
 	"description": "Dotdotdot is a javascript plugin for truncating multiple line content with an ellipsis.",
 	"keywords": [
