@@ -1,13 +1,13 @@
 /*!
- *	dotdotdot JS 4.0.9
+ *  dotdotdot JS 4.0.9
  *
- *	dotdotdot.frebsite.nl
+ *  dotdotdot.frebsite.nl
  *
- *	Copyright (c) Fred Heusschen
- *	www.frebsite.nl
+ *  Copyright (c) Fred Heusschen
+ *  www.frebsite.nl
  *
- *	License: CC-BY-NC-4.0
- *	http://creativecommons.org/licenses/by-nc/4.0/
+ *  License: CC-BY-NC-4.0
+ *  http://creativecommons.org/licenses/by-nc/4.0/
  */
 export declare type dddContainer = HTMLElement & {
     dotdotdot?: dddFunctionObject;
@@ -37,9 +37,9 @@ export interface dddOptions {
  * Class for a multiline ellipsis.
  */
 export default class Dotdotdot {
-    /**	Plugin version. */
+    /**  Plugin version. */
     static version: string;
-    /**	Default options. */
+    /**  Default options. */
     static options: dddOptions;
     /** Element to truncate */
     container: dddContainer;
@@ -64,12 +64,12 @@ export default class Dotdotdot {
     /**
      * Truncate a multiline element with an ellipsis.
      *
-     * @param {HTMLElement} 	container						The element to truncate.
-     * @param {object} 			[options=Dotdotdot.options]		Options for the menu.
+     * @param {HTMLElement}   container            The element to truncate.
+     * @param {object}       [options=Dotdotdot.options]    Options for the menu.
      */
     constructor(container: HTMLElement, options?: dddOptions);
     /**
-     *	Restore the container to a pre-init state.
+     *  Restore the container to a pre-init state.
      */
     restore(): void;
     /**
@@ -103,7 +103,7 @@ export default class Dotdotdot {
     /**
      * Truncate a word by removing letters from the end.
      *
-     * @param 	{HTMLElement} element The element to truncate.
+     * @param   {HTMLElement} element The element to truncate.
      */
     _truncateToLetter(element: HTMLElement | Text): void;
     /**
@@ -115,8 +115,8 @@ export default class Dotdotdot {
     /**
      * Add the ellipsis to a text.
      *
-     * @param 	{string} text 	The text to add the ellipsis to.
-     * @return	{string}		The text with the added ellipsis.
+     * @param   {string} text   The text to add the ellipsis to.
+     * @return  {string}    The text with the added ellipsis.
      */
     _addEllipsis(text: string): string;
     /**
@@ -139,16 +139,16 @@ export default class Dotdotdot {
         /**
          * Find elements by a query selector in an element.
          *
-         * @param {string}		selector 			The selector to search for.
-         * @param {HTMLElement}	[element=document]	The element to search in.
-         * @return {array} 							The found elements.
+         * @param {string}    selector       The selector to search for.
+         * @param {HTMLElement}  [element=document]  The element to search in.
+         * @return {array}               The found elements.
          */
         find: (selector: string, element?: HTMLElement | Document | undefined) => HTMLElement[];
         /**
          * Collect child nodes (HTML elements and TextNodes) in an element.
          *
-         * @param {HTMLElement}	[element=document]	The element to search in.
-         * @return {array} 							The found nodes.
+         * @param {HTMLElement}  [element=document]  The element to search in.
+         * @return {array}               The found nodes.
          */
         contents: (element?: HTMLElement | Text | Document | undefined) => (HTMLElement | Text)[];
     };
