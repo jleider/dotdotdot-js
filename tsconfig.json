@@ -1,7 +1,6 @@
 {
 	"compilerOptions": {
 		"declaration": true,
-		"declarationDir": "src",
 		"lib": ["dom", "es6"],
 		"target": "es6",
 		"module": "es6",

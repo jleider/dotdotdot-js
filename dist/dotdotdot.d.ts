@@ -8,6 +8,8 @@
  *
  *  License: CC-BY-NC-4.0
  *  http://creativecommons.org/licenses/by-nc/4.0/
+ *
+ *  Contributors: Justin Leider <github@justinleider.com>
  */
 export declare type dddContainer = HTMLElement & {
     dotdotdot?: dddFunctionObject;

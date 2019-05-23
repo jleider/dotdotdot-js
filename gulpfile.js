@@ -10,7 +10,7 @@ const transpile = (target, module) => {
     // First, we transpile back to JS.
     const tsResult = tsProject.src().pipe(tsProject());
 
-    tsResult.dts.pipe(gulp.dest('src'));
+    tsResult.dts.pipe(gulp.dest('dist'));
 
     return tsResult.js.pipe(
       terser({
